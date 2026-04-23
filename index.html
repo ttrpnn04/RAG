@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Career Advisor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-animation"></div>
+<div class="floating-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+</div>
+<div class="snowflake" style="left: 10%; animation-duration: 8s; animation-delay: 0s;">❄️</div>
+<div class="snowflake" style="left: 30%; animation-duration: 10s; animation-delay: 2s;">❅</div>
+<div class="snowflake" style="left: 50%; animation-duration: 7s; animation-delay: 4s;">❄️</div>
+<div class="snowflake" style="left: 70%; animation-duration: 9s; animation-delay: 1s;">❅</div>
+<div class="snowflake" style="left: 90%; animation-duration: 11s; animation-delay: 3s;">❄️</div>
+
+<div class="chat-container">
+    <div class="header">
+        <div class="avatar">🐧</div>
+        <div class="header-text">
+            <h1>Mr.Pingo</h1>
+            <p>เพนกวินน้อยที่ชอบ IT พร้อมช่วยคุณ!</p>
+        </div>
+        <div class="status">
+            <div class="status-dot"></div>
+            <span>ออนไลน์</span>
+        </div>
+    </div>
+
+    <div class="suggestions">
+        <span class="suggestion-chip" onclick="setQuestion('สวัสดี')">👋 สวัสดี</span>
+        <span class="suggestion-chip" onclick="setQuestion('อยากเป็นโปรแกรมเมอร์ต้องเรียนอะไร')">💻 อยากเป็นโปรแกรมเมอร์</span>
+        <span class="suggestion-chip" onclick="setQuestion('งาน Data Scientist ทำอะไร')">📊 Data Scientist</span>
+        <span class="suggestion-chip" onclick="setQuestion('เงินเดือน Developer Junior')">💰 เงินเดือน Developer</span>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+        <div class="welcome-msg" id="welcomeMsg">
+            <div class="welcome-icon">🐧</div>
+            <h3>Noot Noot! 👋</h3>
+            <p>Pingo อยากช่วยคุณเรื่องอาชีพ IT!<br>ถามได้เลยหรือเลือกคำถามด้านบน 🐧✨</p>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-wrapper">
+            <input id="q" placeholder="พิมพ์คำถามของคุณ..." autocomplete="off">
+            <button class="btn-send" id="btnSend" onclick="ask()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function setQuestion(text) {
+    document.getElementById('q').value = text;
+    ask();
+}
+
+async function ask() {
+    let question = document.getElementById("q").value.trim();
+    if (!question) return;
+
+    let chatArea = document.getElementById("chatArea");
+    let welcomeMsg = document.getElementById("welcomeMsg");
+    let btnSend = document.getElementById("btnSend");
+
+    // ซ่อน welcome message
+    if (welcomeMsg) welcomeMsg.style.display = 'none';
+
+    // เพิ่มข้อความผู้ใช้ พร้อม avatar
+    let userMsg = document.createElement('div');
+    userMsg.className = 'message user';
+    userMsg.innerHTML = `
+        <div class="message-wrapper">
+            <div class="message-content">
+                <div class="message-bubble">${formatMessage(question)}</div>
+            </div>
+            <div class="message-avatar">👤</div>
+        </div>`;
+    chatArea.appendChild(userMsg);
+
+    // เคลียร์ input + โหลดดิ้ง
+    document.getElementById("q").value = '';
+    btnSend.classList.add('loading');
+
+    // เพิ่ม typing indicator
+    let typingDiv = document.createElement('div');
+    typingDiv.className = 'message bot';
+    typingDiv.innerHTML = `
+        <div class="message-wrapper">
+            <div class="message-avatar">🐧</div>
+            <div class="message-content">
+                <div class="typing-indicator active">
+                    <div class="dots">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    chatArea.appendChild(typingDiv);
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    try {
+        let res = await fetch("http://127.0.0.1:8000/ask", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({question})
+        });
+
+        let data = await res.json();
+
+        // ลบ typing indicator
+        typingDiv.remove();
+
+        // เพิ่มคำตอบ พร้อม avatar
+        let botMsg = document.createElement('div');
+        botMsg.className = 'message bot';
+        botMsg.innerHTML = `
+            <div class="message-wrapper">
+                <div class="message-avatar">🐧</div>
+                <div class="message-content">
+                    <div class="message-bubble">${formatMessage(data.answer)}</div>
+                    <div class="message-time">${getCurrentTime()}</div>
+                </div>
+            </div>`;
+        chatArea.appendChild(botMsg);
+
+    } catch (error) {
+        typingDiv.remove();
+
+        let errorMsg = document.createElement('div');
+        errorMsg.className = 'message bot';
+        errorMsg.innerHTML = `
+            <div class="message-wrapper">
+                <div class="message-avatar">⚠️</div>
+                <div class="message-content">
+                    <div class="message-bubble">❌ เกิดข้อผิดพลาด: ${formatMessage(error.message)}</div>
+                </div>
+            </div>`;
+        chatArea.appendChild(errorMsg);
+    }
+
+    btnSend.classList.remove('loading');
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function getCurrentTime() {
+    let now = new Date();
+    return now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatMessage(text) {
+    // Escape HTML เพื่อความปลอดภัย
+    let div = document.createElement('div');
+    div.textContent = text;
+    let escaped = div.innerHTML;
+    
+    // แปลง **text** เป็น <strong>text</strong>
+    escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // แปลง bullet points (* text หรือ - text) เป็น HTML lists
+    // หา pattern ของ bullet points ที่ต่อกัน
+    const lines = escaped.split('\n');
+    let result = [];
+    let inList = false;
+    let listItems = [];
+    
+    for (let line of lines) {
+        const bulletMatch = line.match(/^[\s]*[-*]\s+(.+)$/);
+        
+        if (bulletMatch) {
+            if (!inList) {
+                inList = true;
+                listItems = [];
+            }
+            listItems.push(bulletMatch[1]);
+        } else {
+            if (inList) {
+                // ปิด list ก่อน
+                result.push('<ul>' + listItems.map(item => `<li>${item}</li>`).join('') + '</ul>');
+                inList = false;
+                listItems = [];
+            }
+            result.push(line);
+        }
+    }
+    
+    // ถ้ายังเหลือ list ที่ไม่ได้ปิด
+    if (inList && listItems.length > 0) {
+        result.push('<ul>' + listItems.map(item => `<li>${item}</li>`).join('') + '</ul>');
+    }
+    
+    return result.join('\n');
+}
+
+// Enter to send
+document.getElementById('q').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') ask();
+});
+</script>
+
+</body>
+</html>
